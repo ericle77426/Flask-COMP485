@@ -51,7 +51,7 @@ def index():
 			sendEmail(server['serverName'])
 
 	return render_template("index.html", serverList=serverList)
-#sadjkfahalsd
+
 # Login page
 @app.route('/login', methods=['GET', 'POST'])
 def login():
