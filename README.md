@@ -31,3 +31,5 @@ $ python server.py
 ```
 And enjoy, access: http://127.0.0.1:5000
 
+### We try to compare flask with javascript but right now the javascript still not done yet
+
