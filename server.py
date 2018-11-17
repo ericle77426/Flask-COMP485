@@ -31,12 +31,12 @@ def teardown_request(exception):
 	if db is not None:
 		db.close()
 
+
 # Ping a specific host and report its status
 def isAlive(server):
 	command = ['ping', '-n', '1', '-w', '1000', server]
 	with open(os.devnull, 'w') as DEVNULL:
 		res = subprocess.call(command, stdout=DEVNULL, stderr=DEVNULL)
-		return res
 
 ############## APP ROUTES ################
 
@@ -46,9 +46,6 @@ def index():
 	cur = g.db.execute("select * from servers order by name")
 	serverList = [dict(id=row[0], serverName=row[1], status=isAlive(row[1])) for row in cur.fetchall()]
 	
-	for server in serverList:
-		if server['status'] == 1:
-			sendEmail(server['serverName'])
 
 	return render_template("index.html", serverList=serverList)
 
@@ -81,47 +78,6 @@ def login():
 	# If method = GET, simply displays login page
 	return render_template('login.html', error=error)
 
-
-# Add new server to monitor
-@app.route('/addServer', methods=['POST'])
-def add_server():
-	if not session.get('logged_in'):
-		abort(401)
-
-	g.db.execute("insert into servers (name) values (?)",
-								[request.form['name']])
-
-	g.db.commit()
-	return redirect(url_for('index'))
-
-# Remove a server to stop monitoring
-@app.route('/removeServer/<serverId>', methods=['POST'])
-def remove_server(serverId):
-	if not session.get('logged_in'):
-		abort(401)
-
-	g.db.execute("delete from servers where id = ?", [serverId])
-	g.db.commit()
-
-	return redirect(url_for('index'))
-
-# Viewing/Creating new users
-@app.route('/addUser', methods=['GET', 'POST'])
-def add_user():
-	if not session.get('logged_in'):
-		abort(401)
-
-
-# This route is used to remove an existing user
-@app.route('/removeUser/<username>', methods=['POST'])
-def remove_user(username):
-	if not session.get('logged_in'):
-		abort(401)
-
-	g.db.execute("delete from users where username = ?", [username])
-	g.db.commit()
-
-	return redirect(url_for('add_user'))
 
 if __name__ == "__main__":
 	app.run()
