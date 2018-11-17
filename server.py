@@ -2,8 +2,7 @@ import sqlite3, smtplib, os, subprocess
 from flask import Flask, request, session, g, render_template, flash, \
 									redirect, url_for
 from contextlib import closing
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+
 
 app = Flask(__name__)
 app.config.from_pyfile('config.cfg') # Initialize app's settings from config.cfg
@@ -14,10 +13,10 @@ def connect_db():
 
 # Helper function to init SQLite3 db when app starts
 def init_db():
-	with app.app_context():
-		db = get_db()
+	with closing(connect_db()) as db:
 		with app.open_resource('schema.sql', mode='r') as f:
 			db.cursor().executescript(f.read())
+
 		db.commit()
 
 # Initialize DB connection for each request and tear them down afterwards
@@ -31,12 +30,13 @@ def teardown_request(exception):
 	if db is not None:
 		db.close()
 
-
 # Ping a specific host and report its status
 def isAlive(server):
 	command = ['ping', '-n', '1', '-w', '1000', server]
 	with open(os.devnull, 'w') as DEVNULL:
 		res = subprocess.call(command, stdout=DEVNULL, stderr=DEVNULL)
+		return res
+
 
 ############## APP ROUTES ################
 
@@ -46,6 +46,9 @@ def index():
 	cur = g.db.execute("select * from servers order by name")
 	serverList = [dict(id=row[0], serverName=row[1], status=isAlive(row[1])) for row in cur.fetchall()]
 	
+	for server in serverList:
+		if server['status'] == 1:
+			sendEmail(server['serverName'])
 
 	return render_template("index.html", serverList=serverList)
 
@@ -78,6 +81,74 @@ def login():
 	# If method = GET, simply displays login page
 	return render_template('login.html', error=error)
 
+# Logout 
+@app.route('/logout')
+def logout():
+	# Clear the 'logged_in' key to log out
+	session.pop('logged_in', None)
+	flash('You were logged out')
+	return redirect(url_for('index'))
+
+# Add new server to monitor
+@app.route('/addServer', methods=['POST'])
+def add_server():
+	if not session.get('logged_in'):
+		abort(401)
+
+	g.db.execute("insert into servers (name) values (?)",
+								[request.form['name']])
+
+	g.db.commit()
+	return redirect(url_for('index'))
+
+# Remove a server to stop monitoring
+@app.route('/removeServer/<serverId>', methods=['POST'])
+def remove_server(serverId):
+	if not session.get('logged_in'):
+		abort(401)
+
+	g.db.execute("delete from servers where id = ?", [serverId])
+	g.db.commit()
+
+	return redirect(url_for('index'))
+
+# Viewing/Creating new users
+@app.route('/addUser', methods=['GET', 'POST'])
+def add_user():
+	if not session.get('logged_in'):
+		abort(401)
+
+	# If method is GET, display all users
+	cur = g.db.execute("select * from users")
+	userList = [dict(username=row[0], password=row[1]) for row in cur.fetchall()]
+	usernameList = [u.get('username') for u in userList]
+
+	# otherwise, add new user to system
+	error = None
+	if request.method == 'POST':
+		inputUser = request.form['username']
+		# If username entered already in the database
+		if inputUser in usernameList:
+			error = "User already exists!"
+		else:	# otherwise, add new user
+			g.db.execute("insert into users (username, password) values (?, ?)", 
+										[request.form['username'], request.form['password']])
+
+			g.db.commit()
+			return redirect(url_for('add_user'))
+
+	return render_template('addUser.html', userList=userList, error=error)
+
+# This route is used to remove an existing user
+@app.route('/removeUser/<username>', methods=['POST'])
+def remove_user(username):
+	if not session.get('logged_in'):
+		abort(401)
+
+	g.db.execute("delete from users where username = ?", [username])
+	g.db.commit()
+
+	return redirect(url_for('add_user'))
 
 if __name__ == "__main__":
 	app.run()
