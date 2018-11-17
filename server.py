@@ -45,10 +45,6 @@ def isAlive(server):
 def index():
 	cur = g.db.execute("select * from servers order by name")
 	serverList = [dict(id=row[0], serverName=row[1], status=isAlive(row[1])) for row in cur.fetchall()]
-	
-	for server in serverList:
-		if server['status'] == 1:
-			sendEmail(server['serverName'])
 
 	return render_template("index.html", serverList=serverList)
 
