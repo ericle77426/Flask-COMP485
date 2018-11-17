@@ -16,11 +16,11 @@ This monitoring system has following functions:
 > *: those functions only available when user is logged in
 
 ### Usage:
-For the flask you need to install python in https://www.python.org/,
-After install open cmd you can cd to the python folder then srite command "pip install virtualenv" to check the pip version
-Use the command cd in cmd move to the folder that you keep the Flask-COMP485 in github then write a command "virtualenv venv" for install setuptools python in that folder
-In this test we use sqlite 3. you can free download at https://www.sqlite.org/index.html
-First time see this web app? please run the following commands to init database:
++ For the flask you need to install python in https://www.python.org/,
++ After install open cmd you can cd to the python folder then srite command "pip install virtualenv" to check the pip version
++ Use the command cd in cmd move to the folder that you keep the Flask-COMP485 in github then write a command "virtualenv venv" for install setuptools python in that folder
++ In this test we use sqlite 3. you can free download at https://www.sqlite.org/index.html
++ First time see this web app? please run the following commands to init database:
 ```
 $ from server import init_db
 $ init_db()
